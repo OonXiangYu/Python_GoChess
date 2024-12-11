@@ -11,6 +11,7 @@ class Board(QFrame):  # base the board on a QFrame widget
     boardHeight = 7  #
     timerSpeed = 1000  # the timer updates every 1 second
     counter = 10  # the number the counter will count down from
+    margin = 40
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -23,7 +24,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.isStarted = False  # game is not currently started
         self.start()  # start the game which will start the timer
 
-        #self.boardArray = [[0 for _ in range(7)] for _ in range(7)]    # TODO - create a 2d int/Piece array to store the state of the game
+        self.boardArray = [[0 for _ in range(7)] for _ in range(7)]    # TODO - create a 2d int/Piece array to store the state of the game
         self.printBoardArray()    # TODO - uncomment this method after creating the array above
 
     def printBoardArray(self):
@@ -36,14 +37,12 @@ class Board(QFrame):  # base the board on a QFrame widget
         pass  # Implement this method according to your logic
 
     def squareWidth(self):
-        '''returns the width of one square in the board'''
-        print("calculate width")
-        return self.contentsRect().width() / self.boardWidth
+        '''Returns the width of one square in the game board considering the margins'''
+        return (self.contentsRect().width() - 2 * self.margin) / self.boardWidth
 
     def squareHeight(self):
-        '''returns the height of one square of the board'''
-        print("calculate height")
-        return self.contentsRect().height() / self.boardHeight
+        '''Returns the height of one square in the game board considering the margins'''
+        return (self.contentsRect().height() - 2 * self.margin) / self.boardHeight
 
     def start(self):
         '''starts game'''
@@ -58,7 +57,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         if self.counter == 0:
             print("Game over")
         self.counter -= 1
-        print('timerEvent()', self.counter)
+        #print('timerEvent()', self.counter)
         self.updateTimerSignal.emit(self.counter)
 
     def paintEvent(self, event):
@@ -89,24 +88,23 @@ class Board(QFrame):  # base the board on a QFrame widget
         pass  # Implement this method according to your logic
 
     def drawBoardSquares(self, painter):
-        '''draw all the square on the board'''
+        '''Draw all the squares on the game board with a fixed margin on all four sides'''
         print("start paint")
-        squareWidth = self.squareWidth()
-        squareHeight = self.squareHeight()
-        for row in range(0, Board.boardHeight):
-            for col in range(0, Board.boardWidth):
-                '''
-                painter.save()
-                painter.translate(col * squareWidth, row * squareHeight)
-                painter.setBrush(QBrush(QColor(255, 255, 255)))  # Set brush color
-                painter.drawRect(0, 0, squareWidth, squareHeight)  # Draw rectangles
-                painter.restore()
-                '''
-                print(1)
-                rect = QRectF(col * squareWidth, row * squareHeight, squareWidth, squareHeight)
-                print(2)
-                painter.setBrush(QBrush(QColor(255, 255, 255)))  # Set brush color
-                print(3)
+
+        # Calculate the square size
+        square_width = self.squareWidth()
+        square_height = self.squareHeight()
+
+        # Loop over rows and columns to draw squares with a fixed margin
+        for row in range(self.boardHeight):
+            for col in range(self.boardWidth):
+                rect = QRectF(
+                    self.margin + col * square_width,  # Offset by margin on the x-axis
+                    self.margin + row * square_height,  # Offset by margin on the y-axis
+                    square_width,
+                    square_height
+                )
+                painter.setBrush(QBrush(QColor(255, 255, 255)))
                 painter.drawRect(rect)
 
     def drawPieces(self, painter):
