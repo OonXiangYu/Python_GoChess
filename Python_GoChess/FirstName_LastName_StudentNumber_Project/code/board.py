@@ -2,6 +2,9 @@ from PyQt6.QtWidgets import QFrame
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRectF
 from PyQt6.QtGui import QPainter, QColor, QBrush
 
+from Python_GoChess.FirstName_LastName_StudentNumber_Project.code.game_logic import GameLogic
+
+
 class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal = pyqtSignal(int)  # signal sent when the timer is updated
     clickLocationSignal = pyqtSignal(QPoint)  # signal sent when there is a new click location
@@ -25,6 +28,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.start()  # start the game which will start the timer
 
         self.boardArray = [[0 for _ in range(8)] for _ in range(8)]    # TODO - create a 2d int/Piece array to store the state of the game
+        self.game = GameLogic(self.boardArray)
         self.printBoardArray()    # TODO - uncomment this method after creating the array above
 
     def printBoardArray(self):
@@ -59,6 +63,10 @@ class Board(QFrame):  # base the board on a QFrame widget
     def paintEvent(self, event):
         '''paints the board and the pieces of the game'''
         painter = QPainter(self)
+
+        painter.setBrush(QBrush(QColor(246, 178, 107)))
+        painter.drawRect(self.rect())
+
         self.drawBoardSquares(painter)
 
         self.drawPieces(painter)
@@ -71,7 +79,8 @@ class Board(QFrame):  # base the board on a QFrame widget
         col = int(click_point.x() / cell_width)
         row = int(click_point.y() / cell_height)
 
-        return row,col
+        if self.boardArray[row][col] == 0:
+            return row,col
 
     def mousePressEvent(self, event):
         '''this event is automatically called when the mouse is pressed'''
@@ -81,7 +90,13 @@ class Board(QFrame):  # base the board on a QFrame widget
         #self.clickLocationSignal.emit(clickLoc)  # Emit signal
 
         # Save the clicked point and trigger a repaint
-        self.boardArray[row][col] = 1
+        if self.game.gameTurn() == 1:
+            self.boardArray[row][col] = 1 # Black pieces / Player 1
+        else:
+            self.boardArray[row][col] = 2 # White pieces/ Player 2
+
+        self.game.eatPieces()
+
         self.printBoardArray()
         self.update()
 
@@ -114,7 +129,7 @@ class Board(QFrame):  # base the board on a QFrame widget
                     square_width,
                     square_height
                 )
-                painter.setBrush(QBrush(QColor(255, 255, 255)))
+                painter.setBrush(QBrush(QColor(246, 178, 107)))
                 painter.drawRect(rect)
 
     def drawPieces(self, painter):
@@ -135,7 +150,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         '''
         cell_width = self.width() / 8
         cell_height = self.height() / 8
-        painter.setBrush(QBrush(QColor(255, 0, 0)))  # Red color
+
         try:
             for row_idx, row in enumerate(self.boardArray): # based on board array i will know which position i need to place a piece
                 for col_idx, point in enumerate(row):
@@ -143,6 +158,10 @@ class Board(QFrame):  # base the board on a QFrame widget
                         center_x = int((col_idx + 0.55) * cell_width)
                         center_y = int((row_idx + 0.45) * cell_height)
                         radius = int(min(cell_width, cell_height) / 4)
+                        if point == 1:
+                            painter.setBrush(QBrush(QColor(0, 0, 0)))  # Black color
+                        else:
+                            painter.setBrush(QBrush(QColor(255, 255, 255)))  # White colour
                         painter.drawEllipse(center_x - radius, center_y - radius, radius * 2, radius * 2)
         except Exception as e:
             print(e)
