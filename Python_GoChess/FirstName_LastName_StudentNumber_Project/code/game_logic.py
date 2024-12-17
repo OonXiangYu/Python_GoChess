@@ -30,20 +30,21 @@ class GameLogic:
                             self.boardArr[row][col] = 3 # ate by white chess, use a number to mark
                         else:
                             group = self.checkMultipleArr([row[:] for row in self.boardArr], 1)
-                            if self.eatMultiplePieces(group, 2):
-                                for x, y in group:
-                                    self.boardArr[x][y] = 0
+                            for grp in group:
+                                if self.eatMultiplePieces(grp, 2):
+                                    for x, y in grp:
+                                        self.boardArr[x][y] = 0
                     elif self.boardArr[row][col] == 2:
                         if self.checkArr(row, col,1) == False:
                             self.boardArr[row][col] = 4 # ate by black chess, use a number to mark
                         else:
                             group = self.checkMultipleArr([row[:] for row in self.boardArr], 2)
-                            if self.eatMultiplePieces(group, 1):
-                                for x, y in group:
-                                    self.boardArr[x][y] = 0
-
+                            for grp in group:
+                                if self.eatMultiplePieces(grp, 1):
+                                    for x, y in grp:
+                                        self.boardArr[x][y] = 0
         except Exception as e:
-            print(e)
+            print("eatPieces : ",e)
 
     def checkArr(self, x, y, idx): # just for 1 piece checking
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Down, Up, Right, Left
@@ -70,15 +71,16 @@ class GameLogic:
             dfs(x, y + 1, group)
             dfs(x, y - 1, group)
 
+        groups = [] # a big arr to store all the group
         for x in range(len(boardArray)):
             for y in range(len(boardArray[0])):
                 if boardArray[x][y] == index:  # Start DFS at the first index found
                     group = []
                     dfs(x, y, group)
                     if len(group) > 1: # where there is multiple pieces form a group
-                        return group  # Return the first group found
+                        groups.append(group)
 
-        return []  # Return an empty list if no group is found
+        return groups
 
     def eatMultiplePieces(self, group, index):
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Down, Up, Right, Left
