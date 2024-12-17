@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QFrame
+from PyQt6.QtWidgets import QFrame, QApplication, QMessageBox, QWidget, QPushButton, QVBoxLayout
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRectF
 from PyQt6.QtGui import QPainter, QColor, QBrush
 
@@ -63,13 +63,15 @@ class Board(QFrame):  # base the board on a QFrame widget
     def paintEvent(self, event):
         '''paints the board and the pieces of the game'''
         painter = QPainter(self)
+        try:
+            painter.setBrush(QBrush(QColor(246, 178, 107)))
+            painter.drawRect(self.rect())
 
-        painter.setBrush(QBrush(QColor(246, 178, 107)))
-        painter.drawRect(self.rect())
+            self.drawBoardSquares(painter)
 
-        self.drawBoardSquares(painter)
-
-        self.drawPieces(painter)
+            self.drawPieces(painter)
+        except Exception as e:
+            print(e)
 
     def mousePosToColRow(self, click_point: QPoint):
         '''convert the mouse click event to a row and column'''
@@ -79,8 +81,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         col = int(click_point.x() / cell_width)
         row = int(click_point.y() / cell_height)
 
-        if self.boardArray[row][col] == 0:
-            return row,col
+        return row,col
 
     def mousePressEvent(self, event):
         '''this event is automatically called when the mouse is pressed'''
@@ -89,11 +90,29 @@ class Board(QFrame):  # base the board on a QFrame widget
         row, col = self.mousePosToColRow(clickLoc)
         #self.clickLocationSignal.emit(clickLoc)  # Emit signal
 
-        # Save the clicked point and trigger a repaint
-        if self.game.gameTurn() == 1:
-            self.boardArray[row][col] = 1 # Black pieces / Player 1
-        else:
-            self.boardArray[row][col] = 2 # White pieces/ Player 2
+            # Save the clicked point and trigger a repaint
+        try:
+            if self.game.gameTurn() == 1:
+                if self.boardArray[row][col] == 0 or self.boardArray[row][col] == 4: # 4 is mean the place u place will make you suicide
+                    self.boardArray[row][col] = 1 # Black pieces / Player 1
+                else:
+                    try:
+                        self.game.regretGameTurn()
+                        show_error()
+                    except Exception as e:
+                        print(e)
+
+            else:
+                if self.boardArray[row][col] == 0 or self.boardArray[row][col] == 3:
+                    self.boardArray[row][col] = 2 # White pieces/ Player 2
+                else:
+                    try:
+                        self.game.regretGameTurn()
+                        show_error()
+                    except Exception as e:
+                        print(e)
+        except Exception as e:
+            print(e)
 
         self.game.eatPieces()
 
@@ -114,55 +133,54 @@ class Board(QFrame):  # base the board on a QFrame widget
 
     def drawBoardSquares(self, painter):
         '''Draw all the squares on the game board with a fixed margin on all four sides'''
-        print("start paint")
+        try:
+            # Calculate the square size
+            square_width = self.squareWidth()
+            square_height = self.squareHeight()
 
-        # Calculate the square size
-        square_width = self.squareWidth()
-        square_height = self.squareHeight()
-
-        # Loop over rows and columns to draw squares with a fixed margin
-        for row in range(self.boardHeight):
-            for col in range(self.boardWidth):
-                rect = QRectF(
-                    self.margin + col * square_width,  # Offset by margin on the x-axis
-                    self.margin + row * square_height,  # Offset by margin on the y-axis
-                    square_width,
-                    square_height
-                )
-                painter.setBrush(QBrush(QColor(246, 178, 107)))
-                painter.drawRect(rect)
+            # Loop over rows and columns to draw squares with a fixed margin
+            for row in range(self.boardHeight):
+                for col in range(self.boardWidth):
+                    rect = QRectF(
+                        self.margin + col * square_width,  # Offset by margin on the x-axis
+                        self.margin + row * square_height,  # Offset by margin on the y-axis
+                        square_width,
+                        square_height
+                    )
+                    painter.setBrush(QBrush(QColor(246, 178, 107)))
+                    painter.drawRect(rect)
+        except Exception as e:
+            print(e)
 
     def drawPieces(self, painter):
         '''draw the pieces on the board'''
-        '''
-        for row in range(0, len(self.boardArray)):
-            for col in range(0, len(self.boardArray[0])):
-                painter.save()
-                painter.translate(col * self.squareWidth(), row * self.squareHeight())
-                # TODO draw some pieces as ellipses
-                # TODO choose your color and set the painter brush to the correct color
-                painter.setBrush(QBrush(QColor(0, 0, 255)))  # Set the circle's color to blue
-
-                radius = (self.squareWidth() - 2) / 2
-                center = QPoint(radius, radius)
-                painter.drawEllipse(center, radius, radius)
-                painter.restore()
-        '''
         cell_width = self.width() / 8
         cell_height = self.height() / 8
 
         try:
             for row_idx, row in enumerate(self.boardArray): # based on board array i will know which position i need to place a piece
                 for col_idx, point in enumerate(row):
-                    if point != 0:
+                    if 0 < point <= 2:# only 1 and 2 is represent color
                         center_x = int((col_idx + 0.55) * cell_width)
                         center_y = int((row_idx + 0.45) * cell_height)
                         radius = int(min(cell_width, cell_height) / 4)
+
                         if point == 1:
                             painter.setBrush(QBrush(QColor(0, 0, 0)))  # Black color
-                        else:
+                        elif point == 2:
                             painter.setBrush(QBrush(QColor(255, 255, 255)))  # White colour
+
                         painter.drawEllipse(center_x - radius, center_y - radius, radius * 2, radius * 2)
         except Exception as e:
             print(e)
+
+def show_error():
+    # Create and display an error message box
+    error_msg = QMessageBox()
+    error_msg.setIcon(QMessageBox.Icon.Critical)
+    error_msg.setWindowTitle("Error")
+    error_msg.setText("You are not allow to place here")
+    error_msg.setInformativeText("Please do another move")
+    error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+    error_msg.exec()
 
