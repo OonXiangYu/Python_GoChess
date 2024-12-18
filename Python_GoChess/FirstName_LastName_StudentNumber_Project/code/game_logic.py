@@ -5,7 +5,13 @@ class GameLogic:
         self.playerTurn = 0
         self.boardArr = boardArr
 
-    def gameTurn(self):
+    def resetGameTurn(self):
+        self.playerTurn = 0
+
+    def getGameTurn(self): # for getting player turn
+        return self.playerTurn
+
+    def gameTurn(self): # for switching turn when press
         try:
             self.playerTurn += 1
             if self.playerTurn % 2 == 0:

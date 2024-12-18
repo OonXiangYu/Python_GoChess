@@ -26,6 +26,7 @@ class Go(QMainWindow):
         self.scoreBoard = ScoreBoard()
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.scoreBoard)
         self.scoreBoard.make_connection(self.board)
+        self.board.makeConnection(self.scoreBoard)
 
         self.resize(800, 800)
         self.center()
