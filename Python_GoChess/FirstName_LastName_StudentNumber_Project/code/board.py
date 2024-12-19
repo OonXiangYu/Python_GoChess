@@ -121,9 +121,13 @@ class Board(QFrame):  # base the board on a QFrame widget
         try:
             if self.game.gameTurn() == 1:
                 self.start()  # start the game which will start the timer
-                if self.boardArray[row][col] == 0 or self.boardArray[row][col] == 4: # 4 is mean the place u place will make you suicide
-                    self.boardArray[row][col] = 1 # Black pieces / Player 1
-                    self.playerTurnSignal.emit(self.game.getGameTurn())
+                if self.boardArray[row][col] == 0:
+                    if not self.game.checkArr(row, col,2):
+                        self.game.regretGameTurn()
+                        show_error()
+                    else:
+                        self.boardArray[row][col] = 1 # Black pieces / Player 1
+                        self.playerTurnSignal.emit(self.game.getGameTurn())
                 else:
                     try:
                         self.game.regretGameTurn()
@@ -132,9 +136,13 @@ class Board(QFrame):  # base the board on a QFrame widget
                         print(e)
 
             else:
-                if self.boardArray[row][col] == 0 or self.boardArray[row][col] == 3:
-                    self.boardArray[row][col] = 2 # White pieces/ Player 2
-                    self.playerTurnSignal.emit(self.game.getGameTurn())
+                if self.boardArray[row][col] == 0:
+                    if not self.game.checkArr(row, col,1):
+                        self.game.regretGameTurn()
+                        show_error()
+                    else:
+                        self.boardArray[row][col] = 2 # White pieces/ Player 2
+                        self.playerTurnSignal.emit(self.game.getGameTurn())
                 else:
                     try:
                         self.game.regretGameTurn()

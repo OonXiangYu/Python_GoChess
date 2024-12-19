@@ -33,7 +33,7 @@ class GameLogic:
                 for col in range(8):
                     if self.boardArr[row][col] == 1:
                         if self.checkArr(row, col,2) == False:
-                            self.boardArr[row][col] = 3 # ate by white chess, use a number to mark
+                            self.boardArr[row][col] = 0
                         else:
                             group = self.checkMultipleArr([row[:] for row in self.boardArr], 1)
                             for grp in group:
@@ -42,7 +42,7 @@ class GameLogic:
                                         self.boardArr[x][y] = 0
                     elif self.boardArr[row][col] == 2:
                         if self.checkArr(row, col,1) == False:
-                            self.boardArr[row][col] = 4 # ate by black chess, use a number to mark
+                            self.boardArr[row][col] = 0
                         else:
                             group = self.checkMultipleArr([row[:] for row in self.boardArr], 2)
                             for grp in group:
