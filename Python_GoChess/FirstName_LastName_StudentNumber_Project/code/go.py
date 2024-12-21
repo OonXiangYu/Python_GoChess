@@ -1,8 +1,9 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QDockWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QDockWidget, QMenuBar
 from PyQt6.QtCore import Qt
 
 from board import Board
 from score_board import ScoreBoard
+from game_logic import GameLogic
 
 
 class Go(QMainWindow):
@@ -16,7 +17,6 @@ class Go(QMainWindow):
 
     def getScoreBoard(self):
         return self.scoreBoard
-
 
     def initUI(self):
         '''Initiates application UI'''

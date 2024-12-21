@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QFrame, QApplication, QMessageBox, QWidget, QPushButton, QVBoxLayout
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRectF, pyqtSlot
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRectF, pyqtSlot, pyqtBoundSignal
 from PyQt6.QtGui import QPainter, QColor, QBrush, QFont
+import copy
 
 from Python_GoChess.FirstName_LastName_StudentNumber_Project.code.game_logic import GameLogic
 
@@ -32,16 +33,22 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.start()
 
         self.boardArray = [[0 for _ in range(8)] for _ in range(8)]    # TODO - create a 2d int/Piece array to store the state of the game
+        self.tempBoard = [[0 for _ in range(8)] for _ in range(8)]
         self.game = GameLogic(self.boardArray)
         self.printBoardArray()    # TODO - uncomment this method after creating the array above
 
     def makeConnection(self, score_board):
         score_board.resetSignal.connect(self.resetGame)
+        score_board.passSignal.connect(self.passGame)
+        score_board.redoSignal.connect(self.redoGame)
 
     def printBoardArray(self):
         '''prints the boardArray in an attractive way'''
         print("boardArray:")
         print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in self.boardArray]))
+
+        print("TempBoard:")
+        print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in self.tempBoard]))
 
     def squareWidth(self):
         '''Returns the width of one square in the game board considering the margins'''
@@ -122,10 +129,11 @@ class Board(QFrame):  # base the board on a QFrame widget
             if self.game.gameTurn() == 1:
                 self.start()  # start the game which will start the timer
                 if self.boardArray[row][col] == 0:
-                    if not self.game.checkArr(row, col,2):
+                    if self.game.checkArr(row, col,2) == False:
                         self.game.regretGameTurn()
                         show_error()
                     else:
+                        self.tempBoard = copy.deepcopy(self.boardArray) # save the current board before modified for redo purpose
                         self.boardArray[row][col] = 1 # Black pieces / Player 1
                         self.playerTurnSignal.emit(self.game.getGameTurn())
                 else:
@@ -137,10 +145,11 @@ class Board(QFrame):  # base the board on a QFrame widget
 
             else:
                 if self.boardArray[row][col] == 0:
-                    if not self.game.checkArr(row, col,1):
+                    if self.game.checkArr(row, col,1) == False:
                         self.game.regretGameTurn()
                         show_error()
                     else:
+                        self.tempBoard = copy.deepcopy(self.boardArray)  # save the current board before modified for redo purpose
                         self.boardArray[row][col] = 2 # White pieces/ Player 2
                         self.playerTurnSignal.emit(self.game.getGameTurn())
                 else:
@@ -170,6 +179,22 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.game.resetGameTurn()
         print("resetGame() - board and counter reset")
         self.update()  # Redraw the board
+
+    @pyqtSlot()
+    def passGame(self):
+        self.game.passGameTurn()
+        self.tempBoard = copy.deepcopy(self.boardArray)
+        self.playerTurnSignal.emit(self.game.getGameTurn())
+
+    @pyqtSlot()
+    def redoGame(self):
+        if self.game.getGameTurn() != 0:
+            self.game.regretGameTurn()
+            self.boardArray = copy.deepcopy(self.tempBoard)
+            self.playerTurnSignal.emit(self.game.getGameTurn())
+            self.update()
+        else:
+            show_error_redo()
 
     def tryMove(self, newX, newY):
         '''tries to move a piece'''
@@ -267,6 +292,16 @@ def show_error():
     error_msg.setWindowTitle("Error")
     error_msg.setText("You are not allow to place here")
     error_msg.setInformativeText("Please do another move")
+    error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+    error_msg.exec()
+
+def show_error_redo():
+    # Create and display an error message box
+    error_msg = QMessageBox()
+    error_msg.setIcon(QMessageBox.Icon.Critical)
+    error_msg.setWindowTitle("Error")
+    error_msg.setText("You are not allow to redo")
+    error_msg.setInformativeText("")
     error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
     error_msg.exec()
 

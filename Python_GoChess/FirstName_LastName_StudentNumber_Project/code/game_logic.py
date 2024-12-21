@@ -1,4 +1,9 @@
-class GameLogic:
+from PyQt6.QtWidgets import QFrame, QApplication, QMessageBox, QWidget, QPushButton, QVBoxLayout
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRectF, pyqtSlot
+from PyQt6.QtGui import QPainter, QColor, QBrush, QFont
+import copy
+
+class GameLogic(QFrame):
     # TODO add code here to manage the logic of your game
     def __init__(self, boardArr):
         super().__init__()
@@ -26,6 +31,9 @@ class GameLogic:
             self.playerTurn -= 1
         except Exception as e:
             print(e)
+
+    def passGameTurn(self):
+        self.playerTurn += 1
 
     def eatPieces(self):
         try:
@@ -104,3 +112,20 @@ class GameLogic:
                         return False
 
         return True
+
+    def printBoardArray(self):
+        '''prints the boardArray in an attractive way'''
+        print("boardArray ####:")
+        print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in self.boardArr]))
+
+        print("TempBoard ####:")
+        print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in self.tempBoard]))
+
+def show_error():
+    # Create and display an error message box
+    error_msg = QMessageBox()
+    error_msg.setIcon(QMessageBox.Icon.Critical)
+    error_msg.setWindowTitle("Error")
+    error_msg.setText("You are not allow to redo")
+    error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+    error_msg.exec()

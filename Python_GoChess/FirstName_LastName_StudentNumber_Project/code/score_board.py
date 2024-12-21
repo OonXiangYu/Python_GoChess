@@ -8,6 +8,8 @@ from Python_GoChess.FirstName_LastName_StudentNumber_Project.code.game_logic imp
 class ScoreBoard(QDockWidget):
     '''# base the score_board on a QDockWidget'''
     resetSignal = pyqtSignal()
+    passSignal = pyqtSignal()
+    redoSignal = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -18,8 +20,6 @@ class ScoreBoard(QDockWidget):
         self.resize(200, 200)
         self.setWindowTitle('ScoreBoard')
 
-        self.game = GameLogic(1)
-
         # create a widget to hold other widgets
         self.mainWidget = QWidget()
         self.mainLayout = QVBoxLayout()
@@ -29,7 +29,9 @@ class ScoreBoard(QDockWidget):
         self.label_clickLocation = QLabel("Click Location: ")
         self.label_timeRemaining1 = QLabel("Player 1 Time remaining: 10 : 00")
         self.label_timeRemaining2 = QLabel("Player 2 Time remaining: 10 : 00")
-        self.resetButton = QPushButton(" Reset Game")
+        self.passButton = QPushButton("Pass")
+        self.regretButton = QPushButton("Undo")
+        self.resetButton = QPushButton("Reset Game")
 
         self.mainWidget.setLayout(self.mainLayout)
         self.mainLayout.addWidget(self.label_playerTurn)
@@ -40,12 +42,14 @@ class ScoreBoard(QDockWidget):
         self.mainLayout.addSpacing(1)
         self.mainLayout.addWidget(self.label_timeRemaining2)
         self.mainLayout.addStretch(1)
+        self.mainLayout.addWidget(self.passButton)
+        self.mainLayout.addWidget(self.regretButton)
         self.mainLayout.addWidget(self.resetButton)
         self.setWidget(self.mainWidget)
 
         self.resetButton.clicked.connect(self.resetGame)
-
-        self.rst = 0
+        self.passButton.clicked.connect(self.passGame)
+        self.regretButton.clicked.connect(self.redoBoard)
 
     def make_connection(self, board):
         '''this handles a signal sent from the board class'''
@@ -58,6 +62,13 @@ class ScoreBoard(QDockWidget):
 
     def resetGame(self):
         self.resetSignal.emit()
+        self.label_playerTurn.setText("Current Player : Player 1")
+
+    def passGame(self):
+        self.passSignal.emit()
+
+    def redoBoard(self):
+        self.redoSignal.emit()
 
     @pyqtSlot(int)
     def updateCurrentPlayer(self,turn):
