@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QFrame, QApplication, QMessageBox, QWidget, QPushButton, QVBoxLayout
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRectF, pyqtSlot, pyqtBoundSignal
-from PyQt6.QtGui import QPainter, QColor, QBrush, QFont
+from PyQt6.QtGui import QPainter, QColor, QBrush, QFont, QRadialGradient
 import copy
 
 from Python_GoChess.FirstName_LastName_StudentNumber_Project.code.game_logic import GameLogic
@@ -129,13 +129,17 @@ class Board(QFrame):  # base the board on a QFrame widget
             if self.game.gameTurn() == 1:
                 self.start()  # start the game which will start the timer
                 if self.boardArray[row][col] == 0:
-                    if self.game.checkArr(row, col,2) == False:
+                    tempBlack = self.game.getBlackPiece() # total black piece before place / purpose for suicide
+
+                    # if suicide rule for multiple pieces or single piece suicide rule trigger
+                    if self.game.suicideRule(row, col, tempBlack, 1) == False or self.game.checkArr(row, col, 2) == False:
                         self.game.regretGameTurn()
                         show_error()
                     else:
                         self.tempBoard = copy.deepcopy(self.boardArray) # save the current board before modified for redo purpose
                         self.boardArray[row][col] = 1 # Black pieces / Player 1
                         self.playerTurnSignal.emit(self.game.getGameTurn())
+
                 else:
                     try:
                         self.game.regretGameTurn()
@@ -145,7 +149,10 @@ class Board(QFrame):  # base the board on a QFrame widget
 
             else:
                 if self.boardArray[row][col] == 0:
-                    if self.game.checkArr(row, col,1) == False:
+                    tempWhite = self.game.getWhitePiece() # total white piece before place / purpose for suicide
+
+                    #if suicide rule for multiple pieces or single piece suicide rule trigger
+                    if self.game.suicideRule(row, col, tempWhite, 2) == False or self.game.checkArr(row, col, 1) == False:
                         self.game.regretGameTurn()
                         show_error()
                     else:
@@ -161,8 +168,24 @@ class Board(QFrame):  # base the board on a QFrame widget
         except Exception as e:
             print(e)
 
+        tempWhite = self.game.getWhitePiece()  # total white piece before place / purpose for effect
+        tempBlack = self.game.getBlackPiece()  # total black piece before place / purpose for effect
+        num1 = 0
+        num2 = 0
+
         self.game.eatPieces()
 
+        for x in range(8):
+            for y in range(8):
+                if self.boardArray[x][y] == 1:
+                    num1 += 1
+                elif self.boardArray[x][y] == 2:
+                    num2 += 1
+
+        if num1 < tempBlack or num2 < tempWhite:
+            self.highlightEffect = True
+
+        self.latestPiece = (row, col)
         self.printBoardArray()
         self.update()
 
@@ -171,12 +194,14 @@ class Board(QFrame):  # base the board on a QFrame widget
         '''clears pieces from the board'''
         # TODO write code to reset game
         print("reset")
-        self.boardArray = [[0 for _ in range(self.boardWidth + 1)] for _ in range(self.boardHeight + 1)]
+        self.boardArray = [[0 for _ in range(8)] for _ in range(8)]
+        self.tempBoard = [[0 for _ in range(8)] for _ in range(8)]
         self.counter1 = 600  # Reset counter
         self.counter2 = 600
         self.updateTimerSignal1.emit(self.counter1)  # for player 1
         self.updateTimerSignal2.emit(self.counter2)  # for player 2
         self.game.resetGameTurn()
+        self.game = GameLogic(self.boardArray)
         print("resetGame() - board and counter reset")
         self.update()  # Redraw the board
 
@@ -243,11 +268,18 @@ class Board(QFrame):  # base the board on a QFrame widget
             print(e)
 
     def drawBoardSquares(self, painter):
-        '''Draw all the squares on the game board with a fixed margin on all four sides'''
+        """Draw all the squares on the game board with a fixed margin on all four sides."""
         try:
+            # Ensure 'highlightEffect' is properly initialized
+            if not hasattr(self, "highlightEffect"):
+                self.highlightEffect = False
+
             # Calculate the square size
             square_width = self.squareWidth()
             square_height = self.squareHeight()
+
+            # Determine square color based on the highlightEffect variable
+            square_color = QColor(242, 86, 65) if self.highlightEffect else QColor(246, 178, 107)
 
             # Loop over rows and columns to draw squares with a fixed margin
             for row in range(self.boardHeight):
@@ -258,32 +290,69 @@ class Board(QFrame):  # base the board on a QFrame widget
                         square_width,
                         square_height
                     )
-                    painter.setBrush(QBrush(QColor(246, 178, 107)))
+                    painter.setBrush(QBrush(square_color))
                     painter.drawRect(rect)
+
+            # If highlightEffect is active, reset it after 2 seconds
+            if self.highlightEffect:
+                QTimer.singleShot(2000, lambda: self.resetHighlightEffect())
+
         except Exception as e:
             print(e)
 
+    def resetHighlightEffect(self):
+        """Reset the highlight effect after 2 seconds."""
+        self.highlightEffect = False
+        self.update()  # Trigger a repaint to remove the effect
+
     def drawPieces(self, painter):
-        '''draw the pieces on the board'''
+        """Draw the pieces on the board."""
         cell_width = self.width() / 8
         cell_height = self.height() / 8
 
+        if not hasattr(self, "latestPiece"):
+            self.latestPiece = None
+        if not hasattr(self, "isFlashing"):
+            self.isFlashing = False
+
         try:
-            for row_idx, row in enumerate(self.boardArray): # based on board array i will know which position i need to place a piece
+            for row_idx, row in enumerate(self.boardArray):  # Based on board array, determine piece positions
                 for col_idx, point in enumerate(row):
-                    if 0 < point <= 2:# only 1 and 2 is represent color
+                    if 0 < point <= 2:  # Only 1 and 2 represent colors
                         center_x = int((col_idx + 0.5) * cell_width)
                         center_y = int((row_idx + 0.5) * cell_height)
                         radius = int(min(cell_width, cell_height) / 4)
 
-                        if point == 1:
-                            painter.setBrush(QBrush(QColor(0, 0, 0)))  # Black color
-                        elif point == 2:
-                            painter.setBrush(QBrush(QColor(255, 255, 255)))  # White colour
+                        # Check if this is the latest piece (flashing effect)
+                        if (row_idx, col_idx) == getattr(self, "latestPiece", (-1, -1)):
+                            if getattr(self, "isFlashing", False):  # Flash is active
+                                painter.setBrush(QBrush(QColor(255, 0, 0)))  # Red for flash
+                            else:
+                                # After the flash ends, draw the piece with its normal color
+                                painter.setBrush(QBrush(QColor(0, 0, 0) if point == 1 else QColor(255, 255, 255)))
+                        else:
+                            # Normal piece colors
+                            if point == 1:
+                                painter.setBrush(QBrush(QColor(0, 0, 0)))  # Black color
+                            elif point == 2:
+                                painter.setBrush(QBrush(QColor(255, 255, 255)))  # White color
 
-                        painter.drawEllipse(center_x - radius, center_y - radius, int(radius * 2), int(radius * 2))
+                        # Draw the piece
+                        painter.drawEllipse(center_x - radius, center_y - radius, radius * 2, radius * 2)
+
+            # Reset the flash effect after drawing the latest piece
+            if hasattr(self, "latestPiece") and not getattr(self, "isFlashing", False):
+                self.isFlashing = True
+                QTimer.singleShot(1000, lambda: self.stopFlashEffect())
+
         except Exception as e:
             print(e)
+
+    def stopFlashEffect(self):
+        """Stop the flashing effect."""
+        self.isFlashing = False
+        self.latestPiece = None
+        self.update()  # Trigger a repaint to remove the flash
 
 def show_error():
     # Create and display an error message box
