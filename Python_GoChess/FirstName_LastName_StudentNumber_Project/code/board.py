@@ -10,7 +10,9 @@ class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal1 = pyqtSignal(int)  # signal sent when the timer is updated for player 1
     updateTimerSignal2 = pyqtSignal(int) # signal sent when the timer is updated for player 2
     clickLocationSignal = pyqtSignal(QPoint)  # signal sent when there is a new click location
-    playerTurnSignal = pyqtSignal(int) # signal sent when player turn changed
+    playerTurnSignal = pyqtSignal(int) # signal sent when player turn changed\
+    player1TerritorySignal = pyqtSignal(int)  # signal for record territory
+    player2TerritorySignal = pyqtSignal(int)  # signal for record territory
 
     # TODO set the board width and height to be square
     boardWidth = 7  # board is 0 squares wide # TODO this needs updating
@@ -36,6 +38,9 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.tempBoard = [[0 for _ in range(8)] for _ in range(8)]
         self.game = GameLogic(self.boardArray)
         self.printBoardArray()    # TODO - uncomment this method after creating the array above
+
+        self.player1Territory = 0
+        self.player2Territory = 0
 
     def makeConnection(self, score_board):
         score_board.resetSignal.connect(self.resetGame)
@@ -78,15 +83,17 @@ class Board(QFrame):  # base the board on a QFrame widget
         # TODO adapt this code to handle your timers
         if self.game.getGameTurn() % 2 == 0: # if player turn is player2 turn then decrease player1 time is becuz te turn will only increase when the player clicked
             if self.counter1 == 0:
-                print("Player 1 Game over")
+                print("Player 2 Victory")
                 self.timer.stop()
+                show_Victory("Player 2")
             else:
                 self.counter1 -= 1
                 self.updateTimerSignal1.emit(self.counter1) # for player 1
         else:
             if self.counter2 == 0:
-                print("Player 2 Game over")
+                print("Player 1 Victory")
                 self.timer.stop()
+                show_Victory("Player 1")
             else:
                 self.counter2 -= 1
                 self.updateTimerSignal2.emit(self.counter2) # for player 2
@@ -174,6 +181,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         num2 = 0
 
         self.game.eatPieces()
+        self.determineWinner()
 
         for x in range(8):
             for y in range(8):
@@ -194,6 +202,10 @@ class Board(QFrame):  # base the board on a QFrame widget
         '''clears pieces from the board'''
         # TODO write code to reset game
         print("reset")
+        self.player1Territory = 0
+        self.player2Territory = 0
+        self.player1TerritorySignal.emit(self.player1Territory)
+        self.player2TerritorySignal.emit(self.player2Territory)
         self.boardArray = [[0 for _ in range(8)] for _ in range(8)]
         self.tempBoard = [[0 for _ in range(8)] for _ in range(8)]
         self.counter1 = 600  # Reset counter
@@ -216,6 +228,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         if self.game.getGameTurn() != 0:
             self.game.regretGameTurn()
             self.boardArray = copy.deepcopy(self.tempBoard)
+            self.game = GameLogic(self.boardArray)
             self.playerTurnSignal.emit(self.game.getGameTurn())
             self.update()
         else:
@@ -295,7 +308,7 @@ class Board(QFrame):  # base the board on a QFrame widget
 
             # If highlightEffect is active, reset it after 2 seconds
             if self.highlightEffect:
-                QTimer.singleShot(2000, lambda: self.resetHighlightEffect())
+                QTimer.singleShot(1000, lambda: self.resetHighlightEffect())
 
         except Exception as e:
             print(e)
@@ -343,7 +356,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             # Reset the flash effect after drawing the latest piece
             if hasattr(self, "latestPiece") and not getattr(self, "isFlashing", False):
                 self.isFlashing = True
-                QTimer.singleShot(1000, lambda: self.stopFlashEffect())
+                QTimer.singleShot(500, lambda: self.stopFlashEffect())
 
         except Exception as e:
             print(e)
@@ -353,6 +366,76 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.isFlashing = False
         self.latestPiece = None
         self.update()  # Trigger a repaint to remove the flash
+
+    def determineWinner(self): # calculate by sum the pieces and the territory suround by the pieces
+        self.player1Territory = 0
+        self.player2Territory = 0
+
+        group = self.checkMultipleArrWinning([row[:] for row in self.boardArray])
+
+        for grp in group: # calculate territory
+            if self.eatMultiplePiecesWinning(grp, 1):
+                self.player1Territory += len(grp)
+
+            if self.eatMultiplePiecesWinning(grp, 2):
+                self.player2Territory += len(grp)
+
+        self.player1Territory += self.game.getBlackPiece()
+        self.player2Territory += self.game.getWhitePiece()
+
+        self.player1TerritorySignal.emit(self.player1Territory)
+        self.player2TerritorySignal.emit(self.player2Territory)
+
+        if self.player1Territory > 32: # if anyone of them have above half territory means they win
+            show_Victory("Player 1")
+        elif self.player2Territory > 32:
+            show_Victory("Player 2")
+
+    def checkMultipleArrWinning(self, boardArray):
+        def dfs(x, y, group):
+            if x < 0 or y < 0 or x >= len(boardArray) or y >= len(boardArray[0]) or boardArray[x][y] != 0:
+                return
+            boardArray[x][y] = -1  # Mark as visited
+            group.append([x, y])
+
+            # Explore all 4 directions
+            dfs(x + 1, y, group)
+            dfs(x - 1, y, group)
+            dfs(x, y + 1, group)
+            dfs(x, y - 1, group)
+
+        groups = []  # a big arr to store all the group
+        for x in range(len(boardArray)):
+            for y in range(len(boardArray[0])):
+                if boardArray[x][y] == 0:  # Start DFS at the first index found
+                    group = []
+                    dfs(x, y, group)
+                    groups.append(group)
+
+        return groups
+
+    def eatMultiplePiecesWinning(self, group, index):
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Down, Up, Right, Left
+
+        groupSet = {tuple(point) for point in group}
+
+        num = 0
+
+        for x, y in group:  # Iterate through all points in the group
+            for dx, dy in directions:  # Check four directions
+                row = x + dx
+                col = y + dy
+
+                # Check if the neighbor is within bounds and not part of the group
+                if (0 <= row < 8 and 0 <= col < 8 and (row, col) not in groupSet):
+                    num += 1
+                    if self.boardArray[row][col] != index:
+                        return False
+
+        if num < len(group):
+            return False
+
+        return True
 
 def show_error():
     # Create and display an error message box
@@ -374,3 +457,10 @@ def show_error_redo():
     error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
     error_msg.exec()
 
+def show_Victory(player):
+    info_box = QMessageBox()
+    info_box.setIcon(QMessageBox.Icon.Information)
+    info_box.setWindowTitle(f"{player} Victory")
+    info_box.setText(f"Congrat {player}")
+    info_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+    info_box.exec()
