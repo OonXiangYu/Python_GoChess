@@ -27,10 +27,12 @@ class ScoreBoard(QDockWidget):
         # create two labels which will be updated by signals
         self.label_playerTurn = QLabel("Current Player : Player 1")
         self.label_clickLocation = QLabel("Click Location: ")
-        self.label_timeRemaining1 = QLabel("Player 1 Time remaining: 10 : 00")
-        self.label_timeRemaining2 = QLabel("Player 2 Time remaining: 10 : 00")
+        self.label_timeRemaining1 = QLabel("Player 1 Time remaining: 2 : 00")
+        self.label_timeRemaining2 = QLabel("Player 2 Time remaining: 2 : 00")
         self.label_territory1 = QLabel("Player 1 Territory : 0")
         self.label_territory2 = QLabel("Player 2 Territory : 0")
+        self.label_captured1 = QLabel("Player 1 Captured : 0")
+        self.label_captured2 = QLabel("Player 2 Captured : 0")
         self.passButton = QPushButton("Pass")
         self.regretButton = QPushButton("Undo")
         self.resetButton = QPushButton("Reset Game")
@@ -43,6 +45,10 @@ class ScoreBoard(QDockWidget):
         self.mainLayout.addWidget(self.label_territory1)
         self.mainLayout.addSpacing(1)
         self.mainLayout.addWidget(self.label_territory2)
+        self.mainLayout.addStretch(1)
+        self.mainLayout.addWidget(self.label_captured1)
+        self.mainLayout.addSpacing(1)
+        self.mainLayout.addWidget(self.label_captured2)
         self.mainLayout.addStretch(1)
         self.mainLayout.addWidget(self.label_timeRemaining1)
         self.mainLayout.addSpacing(1)
@@ -60,13 +66,15 @@ class ScoreBoard(QDockWidget):
     def make_connection(self, board):
         '''this handles a signal sent from the board class'''
         # when the clickLocationSignal is emitted in board the setClickLocation slot receives it
-        #board.clickLocationSignal.connect(self.setClickLocation)
+        board.clickLocationSignal.connect(self.setClickLocation)
         # when the updateTimerSignal is emitted in the board the setTimeRemaining slot receives it
         board.updateTimerSignal1.connect(self.setTimeRemaining1)
         board.updateTimerSignal2.connect(self.setTimeRemaining2)
         board.playerTurnSignal.connect(self.updateCurrentPlayer)
         board.player1TerritorySignal.connect(self.updatePlayer1Territory)
         board.player2TerritorySignal.connect(self.updatePlayer2Territory)
+        board.player1CapturedSignal.connect(self.updatePlayer1Captured)
+        board.player2CapturedSignal.connect(self.updatePlayer2Captured)
 
     def resetGame(self):
         self.resetSignal.emit()
@@ -85,10 +93,15 @@ class ScoreBoard(QDockWidget):
         else:
             self.label_playerTurn.setText("Current Player : Player 1")
 
-    @pyqtSlot(str)  # checks to make sure that the following slot is receiving an argument of the type 'int'
+    @pyqtSlot(list)  # checks to make sure that the following slot is receiving an argument of the type 'int'
     def setClickLocation(self, clickLoc):
         '''updates the label to show the click location'''
-        self.label_clickLocation.setText("Click Location: " + clickLoc)
+        if clickLoc[0] > -1:
+            update = f"{chr(65 + clickLoc[1])} , {clickLoc[0] + 1}" # using acsii table to get alphabet
+        else:
+            update = ""
+
+        self.label_clickLocation.setText("Click Location: " + update)
         #print('slot ' + clickLoc)
 
     @pyqtSlot(int)
@@ -126,4 +139,18 @@ class ScoreBoard(QDockWidget):
         t2 = f"Player 2 Territory : {territory}"
 
         self.label_territory2.setText(t2)
+
+    @pyqtSlot(int)
+    def updatePlayer1Captured(self, piece):
+
+        c1 = f"Player 1 Captured : {piece}"
+
+        self.label_captured1.setText(c1)
+
+    @pyqtSlot(int)
+    def updatePlayer2Captured(self, piece):
+
+        c2 = f"Player 2 Captured : {piece}"
+
+        self.label_captured2.setText(c2)
 

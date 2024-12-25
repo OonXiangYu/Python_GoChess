@@ -1,7 +1,10 @@
+import time
+
 from PyQt6.QtWidgets import QFrame, QApplication, QMessageBox, QWidget, QPushButton, QVBoxLayout
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRectF, pyqtSlot, pyqtBoundSignal
 from PyQt6.QtGui import QPainter, QColor, QBrush, QFont, QRadialGradient
 import copy
+import random
 
 from Python_GoChess.FirstName_LastName_StudentNumber_Project.code.game_logic import GameLogic
 
@@ -9,17 +12,19 @@ from Python_GoChess.FirstName_LastName_StudentNumber_Project.code.game_logic imp
 class Board(QFrame):  # base the board on a QFrame widget
     updateTimerSignal1 = pyqtSignal(int)  # signal sent when the timer is updated for player 1
     updateTimerSignal2 = pyqtSignal(int) # signal sent when the timer is updated for player 2
-    clickLocationSignal = pyqtSignal(QPoint)  # signal sent when there is a new click location
+    clickLocationSignal = pyqtSignal(list)  # signal sent when there is a new click location
     playerTurnSignal = pyqtSignal(int) # signal sent when player turn changed\
     player1TerritorySignal = pyqtSignal(int)  # signal for record territory
     player2TerritorySignal = pyqtSignal(int)  # signal for record territory
+    player1CapturedSignal = pyqtSignal(int) # signal for record how many piece player captured
+    player2CapturedSignal = pyqtSignal(int)
 
     # TODO set the board width and height to be square
     boardWidth = 7  # board is 0 squares wide # TODO this needs updating
     boardHeight = 7  #
     timerSpeed = 1000  # the timer updates every 1 second
-    counter1 = 600  # the number the counter will count down from
-    counter2 = 600 # for diff players
+    counter1 = 120  # the number the counter will count down from
+    counter2 = 120 # for diff players
     margin = 40
     colMargin = 9
     rowMargin = 0
@@ -41,6 +46,8 @@ class Board(QFrame):  # base the board on a QFrame widget
 
         self.player1Territory = 0
         self.player2Territory = 0
+        self.player1Captured = 0
+        self.player2Captured = 0
 
     def makeConnection(self, score_board):
         score_board.resetSignal.connect(self.resetGame)
@@ -129,7 +136,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         clickLoc = event.position().toPoint()  # get the click position
         #print(f"Mouse click at: {clickLoc}")  # Convert QPoint for debugging
         row, col = self.mousePosToColRow(clickLoc)
-        #self.clickLocationSignal.emit(clickLoc)  # Emit signal
+        self.clickLocationSignal.emit([row, col])  # Emit signal
 
             # Save the clicked point and trigger a repaint
         try:
@@ -137,7 +144,7 @@ class Board(QFrame):  # base the board on a QFrame widget
                 self.start()  # start the game which will start the timer
                 if self.boardArray[row][col] == 0:
                     tempBlack = self.game.getBlackPiece() # total black piece before place / purpose for suicide
-
+                    tempWhiteBefore = self.game.getWhitePiece() # to get the piece before captured
                     # if suicide rule for multiple pieces or single piece suicide rule trigger
                     if self.game.suicideRule(row, col, tempBlack, 1) == False or self.game.checkArr(row, col, 2) == False:
                         self.game.regretGameTurn()
@@ -146,7 +153,10 @@ class Board(QFrame):  # base the board on a QFrame widget
                         self.tempBoard = copy.deepcopy(self.boardArray) # save the current board before modified for redo purpose
                         self.boardArray[row][col] = 1 # Black pieces / Player 1
                         self.playerTurnSignal.emit(self.game.getGameTurn())
-
+                        self.game.eatPieces()
+                        tempWhiteAfter = self.game.getWhitePiece()  # to get the piece after captured
+                        self.player1Captured += tempWhiteBefore - tempWhiteAfter
+                        self.player1CapturedSignal.emit(self.player1Captured)
                 else:
                     try:
                         self.game.regretGameTurn()
@@ -157,7 +167,7 @@ class Board(QFrame):  # base the board on a QFrame widget
             else:
                 if self.boardArray[row][col] == 0:
                     tempWhite = self.game.getWhitePiece() # total white piece before place / purpose for suicide
-
+                    tempBlackBefore = self.game.getBlackPiece() # to get the piece before captured
                     #if suicide rule for multiple pieces or single piece suicide rule trigger
                     if self.game.suicideRule(row, col, tempWhite, 2) == False or self.game.checkArr(row, col, 1) == False:
                         self.game.regretGameTurn()
@@ -166,6 +176,10 @@ class Board(QFrame):  # base the board on a QFrame widget
                         self.tempBoard = copy.deepcopy(self.boardArray)  # save the current board before modified for redo purpose
                         self.boardArray[row][col] = 2 # White pieces/ Player 2
                         self.playerTurnSignal.emit(self.game.getGameTurn())
+                        self.game.eatPieces()
+                        tempBlackAfter = self.game.getBlackPiece()  # to get the piece after captured
+                        self.player2Captured += tempBlackBefore - tempBlackAfter
+                        self.player2CapturedSignal.emit(self.player2Captured)
                 else:
                     try:
                         self.game.regretGameTurn()
@@ -180,7 +194,7 @@ class Board(QFrame):  # base the board on a QFrame widget
         num1 = 0
         num2 = 0
 
-        self.game.eatPieces()
+
         self.determineWinner()
 
         for x in range(8):
@@ -206,14 +220,20 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.player2Territory = 0
         self.player1TerritorySignal.emit(self.player1Territory)
         self.player2TerritorySignal.emit(self.player2Territory)
+        self.clickLocationSignal.emit([-1, -1])
         self.boardArray = [[0 for _ in range(8)] for _ in range(8)]
         self.tempBoard = [[0 for _ in range(8)] for _ in range(8)]
         self.counter1 = 600  # Reset counter
         self.counter2 = 600
         self.updateTimerSignal1.emit(self.counter1)  # for player 1
         self.updateTimerSignal2.emit(self.counter2)  # for player 2
+        self.player1Captured = 0
+        self.player2Captured = 0
+        self.player1CapturedSignal.emit(self.player1Captured)
+        self.player2CapturedSignal.emit(self.player2Captured)
         self.game.resetGameTurn()
         self.game = GameLogic(self.boardArray)
+        self.resetWinningEffect()
         print("resetGame() - board and counter reset")
         self.update()  # Redraw the board
 
@@ -225,7 +245,7 @@ class Board(QFrame):  # base the board on a QFrame widget
 
     @pyqtSlot()
     def redoGame(self):
-        if self.game.getGameTurn() != 0:
+        if self.game.getGameTurn() != 0 and self.tempBoard != self.boardArray:
             self.game.regretGameTurn()
             self.boardArray = copy.deepcopy(self.tempBoard)
             self.game = GameLogic(self.boardArray)
@@ -287,12 +307,23 @@ class Board(QFrame):  # base the board on a QFrame widget
             if not hasattr(self, "highlightEffect"):
                 self.highlightEffect = False
 
+            if not hasattr(self, "winningEffect"):
+                self.winningEffect = False
+
             # Calculate the square size
             square_width = self.squareWidth()
             square_height = self.squareHeight()
 
             # Determine square color based on the highlightEffect variable
             square_color = QColor(242, 86, 65) if self.highlightEffect else QColor(246, 178, 107)
+            count = 0
+
+            if self.winningEffect:
+                square_color = self.updateWinningEffect()
+                time.sleep(0.2)
+                count += 1
+                if count == 10:
+                    self.resetWinningEffect()
 
             # Loop over rows and columns to draw squares with a fixed margin
             for row in range(self.boardHeight):
@@ -314,9 +345,31 @@ class Board(QFrame):  # base the board on a QFrame widget
             print(e)
 
     def resetHighlightEffect(self):
-        """Reset the highlight effect after 2 seconds."""
+        """Reset the highlight effect after 1 seconds."""
         self.highlightEffect = False
         self.update()  # Trigger a repaint to remove the effect
+
+    def resetWinningEffect(self):
+        """Reset the highlight effect after 5 seconds."""
+        self.highlightEffect = False
+        self.update()  # Trigger a repaint to remove the effect
+
+    def updateWinningEffect(self):
+        self.colors = [
+            QColor(242, 86, 65),
+            QColor(255, 128, 0),
+            QColor(249, 232, 50),
+            QColor(86, 242, 149),
+            QColor(65, 105, 242),
+            QColor(178, 107, 246),
+            QColor(242, 65, 181),
+            QColor(107, 246, 207),
+            QColor(200, 200, 80),
+            QColor(242, 170, 20),
+        ]
+
+        index = random.randint(0, len(self.colors) - 1)
+        return self.colors[index]
 
     def drawPieces(self, painter):
         """Draw the pieces on the board."""
@@ -388,8 +441,10 @@ class Board(QFrame):  # base the board on a QFrame widget
 
         if self.player1Territory > 32: # if anyone of them have above half territory means they win
             show_Victory("Player 1")
+            self.winningEffect = True
         elif self.player2Territory > 32:
             show_Victory("Player 2")
+            self.winningEffect = True
 
     def checkMultipleArrWinning(self, boardArray):
         def dfs(x, y, group):
@@ -453,7 +508,7 @@ def show_error_redo():
     error_msg.setIcon(QMessageBox.Icon.Critical)
     error_msg.setWindowTitle("Error")
     error_msg.setText("You are not allow to redo")
-    error_msg.setInformativeText("")
+    error_msg.setInformativeText("Player are not allow to redo at first round or redo continuous")
     error_msg.setStandardButtons(QMessageBox.StandardButton.Ok)
     error_msg.exec()
 
