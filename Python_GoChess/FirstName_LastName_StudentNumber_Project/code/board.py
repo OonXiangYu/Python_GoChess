@@ -1,5 +1,6 @@
 import time
 
+from PyQt5.QtGui import QIcon
 from PyQt6.QtWidgets import QFrame, QApplication, QMessageBox, QWidget, QPushButton, QVBoxLayout
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRectF, pyqtSlot, pyqtBoundSignal
 from PyQt6.QtGui import QPainter, QColor, QBrush, QFont, QRadialGradient
@@ -350,8 +351,8 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.update()  # Trigger a repaint to remove the effect
 
     def resetWinningEffect(self):
-        """Reset the highlight effect after 5 seconds."""
-        self.highlightEffect = False
+        """Reset the winning effect after 5 seconds."""
+        self.winningEffect = False
         self.update()  # Trigger a repaint to remove the effect
 
     def updateWinningEffect(self):

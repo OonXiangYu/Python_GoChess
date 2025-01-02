@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QDockWidget, QMenuBar, QMessageBox
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QIcon
 
 from board import Board
 from score_board import ScoreBoard
@@ -27,6 +27,7 @@ class Go(QMainWindow):
         menuBar = self.menuBar()
         rules = menuBar.addMenu("Rules")
         ruleAction = QAction("Rules",self)
+        ruleAction = QAction(QIcon("./image/rule.png"), "Rules", self)
         ruleAction.triggered.connect(self.showRule)
         rules.addAction(ruleAction)
 
@@ -52,6 +53,7 @@ class Go(QMainWindow):
     def showRule(self): # window to show rules
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Rule")
+        msg_box.setWindowIcon(QIcon("./image/rule.png"))
         msg_box.setText("1. Every Players have only 2 mins for play \n"
                         "2. Players can't redo continuously \n"
                         "3. Player who reach above 32 territory first victory \n"
