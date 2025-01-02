@@ -1,6 +1,5 @@
 import time
 
-from PyQt5.QtGui import QIcon
 from PyQt6.QtWidgets import QFrame, QApplication, QMessageBox, QWidget, QPushButton, QVBoxLayout
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRectF, pyqtSlot, pyqtBoundSignal
 from PyQt6.QtGui import QPainter, QColor, QBrush, QFont, QRadialGradient
@@ -21,8 +20,8 @@ class Board(QFrame):  # base the board on a QFrame widget
     player2CapturedSignal = pyqtSignal(int)
 
     # TODO set the board width and height to be square
-    boardWidth = 7  # board is 0 squares wide # TODO this needs updating
-    boardHeight = 7  #
+    boardWidth = 6  # board is 0 squares wide # TODO this needs updating
+    boardHeight = 6 #
     timerSpeed = 1000  # the timer updates every 1 second
     counter1 = 120  # the number the counter will count down from
     counter2 = 120 # for diff players
@@ -40,8 +39,8 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.timer.timeout.connect(self.timerEvent)  # connect timeout signal to timerEvent method
         self.start()
 
-        self.boardArray = [[0 for _ in range(8)] for _ in range(8)]    # TODO - create a 2d int/Piece array to store the state of the game
-        self.tempBoard = [[0 for _ in range(8)] for _ in range(8)]
+        self.boardArray = [[0 for _ in range(7)] for _ in range(7)]    # TODO - create a 2d int/Piece array to store the state of the game
+        self.tempBoard = [[0 for _ in range(7)] for _ in range(7)]
         self.game = GameLogic(self.boardArray)
         self.printBoardArray()    # TODO - uncomment this method after creating the array above
 
@@ -124,8 +123,8 @@ class Board(QFrame):  # base the board on a QFrame widget
 
     def mousePosToColRow(self, click_point: QPoint):
         '''convert the mouse click event to a row and column'''
-        cell_width = self.width() / 8
-        cell_height = self.height() / 8
+        cell_width = self.width() / 7
+        cell_height = self.height() / 7
 
         col = int(click_point.x() / cell_width)
         row = int(click_point.y() / cell_height)
@@ -141,6 +140,7 @@ class Board(QFrame):  # base the board on a QFrame widget
 
             # Save the clicked point and trigger a repaint
         try:
+            print("1" ,self.game.getGameTurn())
             if self.game.gameTurn() == 1:
                 self.start()  # start the game which will start the timer
                 if self.boardArray[row][col] == 0:
@@ -195,11 +195,11 @@ class Board(QFrame):  # base the board on a QFrame widget
         num1 = 0
         num2 = 0
 
-
+        print("2", self.game.getGameTurn())
         self.determineWinner()
 
-        for x in range(8):
-            for y in range(8):
+        for x in range(7):
+            for y in range(7):
                 if self.boardArray[x][y] == 1:
                     num1 += 1
                 elif self.boardArray[x][y] == 2:
@@ -222,8 +222,8 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.player1TerritorySignal.emit(self.player1Territory)
         self.player2TerritorySignal.emit(self.player2Territory)
         self.clickLocationSignal.emit([-1, -1])
-        self.boardArray = [[0 for _ in range(8)] for _ in range(8)]
-        self.tempBoard = [[0 for _ in range(8)] for _ in range(8)]
+        self.boardArray = [[0 for _ in range(7)] for _ in range(7)]
+        self.tempBoard = [[0 for _ in range(7)] for _ in range(7)]
         self.counter1 = 600  # Reset counter
         self.counter2 = 600
         self.updateTimerSignal1.emit(self.counter1)  # for player 1
@@ -248,8 +248,10 @@ class Board(QFrame):  # base the board on a QFrame widget
     def redoGame(self):
         if self.game.getGameTurn() != 0 and self.tempBoard != self.boardArray:
             self.game.regretGameTurn()
+            tempTurn = self.game.getGameTurn()
             self.boardArray = copy.deepcopy(self.tempBoard)
             self.game = GameLogic(self.boardArray)
+            self.game.setGameTurn(tempTurn)
             self.playerTurnSignal.emit(self.game.getGameTurn())
             self.update()
         else:
@@ -374,8 +376,8 @@ class Board(QFrame):  # base the board on a QFrame widget
 
     def drawPieces(self, painter):
         """Draw the pieces on the board."""
-        cell_width = self.width() / 8
-        cell_height = self.height() / 8
+        cell_width = self.width() / 7
+        cell_height = self.height() / 7
 
         if not hasattr(self, "latestPiece"):
             self.latestPiece = None
@@ -386,8 +388,8 @@ class Board(QFrame):  # base the board on a QFrame widget
             for row_idx, row in enumerate(self.boardArray):  # Based on board array, determine piece positions
                 for col_idx, point in enumerate(row):
                     if 0 < point <= 2:  # Only 1 and 2 represent colors
-                        center_x = int((col_idx + 0.5) * cell_width)
-                        center_y = int((row_idx + 0.5) * cell_height)
+                        center_x = int((col_idx + 0.45) * cell_width)
+                        center_y = int((row_idx + 0.45) * cell_height)
                         radius = int(min(cell_width, cell_height) / 4)
 
                         # Check if this is the latest piece (flashing effect)
@@ -405,7 +407,7 @@ class Board(QFrame):  # base the board on a QFrame widget
                                 painter.setBrush(QBrush(QColor(255, 255, 255)))  # White color
 
                         # Draw the piece
-                        painter.drawEllipse(center_x - radius, center_y - radius, radius * 2, radius * 2)
+                        painter.drawEllipse(center_x - radius, center_y - radius, int(radius * 2.5), int(radius * 2.5))
 
             # Reset the flash effect after drawing the latest piece
             if hasattr(self, "latestPiece") and not getattr(self, "isFlashing", False):
@@ -440,10 +442,10 @@ class Board(QFrame):  # base the board on a QFrame widget
         self.player1TerritorySignal.emit(self.player1Territory)
         self.player2TerritorySignal.emit(self.player2Territory)
 
-        if self.player1Territory > 32: # if anyone of them have above half territory means they win
+        if self.player1Territory >= 25: # if anyone of them have above half territory means they win
             show_Victory("Player 1")
             self.winningEffect = True
-        elif self.player2Territory > 32:
+        elif self.player2Territory >= 25:
             show_Victory("Player 2")
             self.winningEffect = True
 
@@ -483,7 +485,7 @@ class Board(QFrame):  # base the board on a QFrame widget
                 col = y + dy
 
                 # Check if the neighbor is within bounds and not part of the group
-                if (0 <= row < 8 and 0 <= col < 8 and (row, col) not in groupSet):
+                if (0 <= row < 7 and 0 <= col < 7 and (row, col) not in groupSet):
                     num += 1
                     if self.boardArray[row][col] != index:
                         return False

@@ -14,8 +14,8 @@ class GameLogic(QFrame):
     def getBlackPiece(self): # get the total black pieces on the board
         blackPiece = 0
 
-        for row in range(8):
-            for col in range(8):
+        for row in range(7):
+            for col in range(7):
                 if self.boardArr[row][col] == 1:
                     blackPiece += 1
 
@@ -24,8 +24,8 @@ class GameLogic(QFrame):
     def getWhitePiece(self): # get the total white pieces on the board
         whitePiece = 0
 
-        for row in range(8):
-            for col in range(8):
+        for row in range(7):
+            for col in range(7):
                 if self.boardArr[row][col] == 2:
                     whitePiece += 1
 
@@ -36,6 +36,9 @@ class GameLogic(QFrame):
 
     def getGameTurn(self): # for getting player turn
         return self.playerTurn
+
+    def setGameTurn(self, gameTurn): # reset the game turn
+        self.playerTurn = gameTurn
 
     def gameTurn(self): # for switching turn when press
         try:
@@ -56,14 +59,14 @@ class GameLogic(QFrame):
     def passGameTurn(self):
         self.playerTurn += 1
 
-    def suicideRule(self, row, col, amount, idx):
+    def suicideRule(self, row, col, amount, idx): # to count the pieces on the board after placed, if the amount is decrease then is suicide
         self.tempBoard = copy.deepcopy(self.boardArr)
         num = 0
         self.tempBoard[row][col] = idx
         self.eatPiecesTesting()
 
-        for x in range(8):
-            for y in range(8):
+        for x in range(7):
+            for y in range(7):
                 if self.tempBoard[x][y] == idx:
                     num += 1
 
@@ -75,8 +78,8 @@ class GameLogic(QFrame):
 
     def eatPieces(self):
         try:
-            for row in range(8):
-                for col in range(8):
+            for row in range(7):
+                for col in range(7):
                     if self.boardArr[row][col] == 1:
                         if self.checkArr(row, col,2) == False:
                             self.boardArr[row][col] = 0
@@ -148,7 +151,7 @@ class GameLogic(QFrame):
                 col = y + dy
 
                 # Check if the neighbor is within bounds and not part of the group
-                if (0 <= row < 8 and 0 <= col < 8 and (row, col) not in groupSet):
+                if (0 <= row < 7 and 0 <= col < 7 and (row, col) not in groupSet):
                     if self.boardArr[row][col] != index:
                         return False
 
@@ -156,8 +159,8 @@ class GameLogic(QFrame):
 
     def eatPiecesTesting(self): # testing for suicide Rule same logic as above
         try:
-            for row in range(8):
-                for col in range(8):
+            for row in range(7):
+                for col in range(7):
                     if self.tempBoard[row][col] == 1:
                         if self.checkArrTesting(row, col, 2) == False:
                             self.tempBoard[row][col] = 0
@@ -226,7 +229,7 @@ class GameLogic(QFrame):
                 col = y + dy
 
                 # Check if the neighbor is within bounds and not part of the group
-                if (0 <= row < 8 and 0 <= col < 8 and (row, col) not in groupSet):
+                if (0 <= row < 7 and 0 <= col < 7 and (row, col) not in groupSet):
                     if self.tempBoard[row][col] != index:
                         return False
 
