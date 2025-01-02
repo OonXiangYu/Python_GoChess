@@ -39,6 +39,7 @@ class Go(QMainWindow):
         self.resize(800, 800)
         self.center()
         self.setWindowTitle('Go')
+        self.setWindowIcon(QIcon("./image/go.png"))
         self.show()
 
 
